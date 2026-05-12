@@ -19,6 +19,15 @@ export function startBot() {
   const bot = new Bot(BOT_TOKEN);
   setBot(bot);
 
+  // Set menu button (small blue button on bottom-left of chat)
+  bot.api.setChatMenuButton({
+    menu_button: {
+      type: "web_app",
+      text: "💎 Invest Pro",
+      web_app: { url: MINI_APP_URL },
+    },
+  } as any).catch(() => {});
+
   bot.command("start", async (ctx) => {
     const telegramId = String(ctx.from?.id);
     const username = ctx.from?.username ?? null;
