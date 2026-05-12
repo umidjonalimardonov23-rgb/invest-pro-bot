@@ -1,22 +1,30 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Invest Pro Telegram Mini App API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: users
+    description: User management
+  - name: deposits
+    description: Deposit operations
+  - name: investments
+    description: Investment operations
+  - name: games
+    description: Game operations
+  - name: donations
+    description: Donation operations
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +32,241 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /users/{telegramId}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get user by telegram ID
+      parameters:
+        - name: telegramId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: Not found
+
+  /users:
+    post:
+      operationId: createOrGetUser
+      tags: [users]
+      summary: Create or get user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserInput"
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /deposits:
+    post:
+      operationId: createDeposit
+      tags: [deposits]
+      summary: Create deposit request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DepositInput"
+      responses:
+        "201":
+          description: Deposit created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Deposit"
+
+  /deposits/{id}/confirm:
+    post:
+      operationId: confirmDeposit
+      tags: [deposits]
+      summary: Admin confirms deposit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DepositConfirm"
+      responses:
+        "200":
+          description: Confirmed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Deposit"
+
+  /deposits/{id}/reject:
+    post:
+      operationId: rejectDeposit
+      tags: [deposits]
+      summary: Admin rejects deposit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Rejected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Deposit"
+
+  /investments:
+    get:
+      operationId: getInvestments
+      tags: [investments]
+      summary: Get user investments
+      parameters:
+        - name: telegramId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of investments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Investment"
+    post:
+      operationId: createInvestment
+      tags: [investments]
+      summary: Create investment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InvestmentInput"
+      responses:
+        "201":
+          description: Investment created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Investment"
+
+  /games/play:
+    post:
+      operationId: playGame
+      tags: [games]
+      summary: Play a game (server-side result)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GamePlayInput"
+      responses:
+        "200":
+          description: Game result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameResult"
+
+  /games/history:
+    get:
+      operationId: getGameHistory
+      tags: [games]
+      summary: Get user game history
+      parameters:
+        - name: telegramId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Game history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GameBet"
+
+  /donations:
+    get:
+      operationId: getDonations
+      tags: [donations]
+      summary: Get donation totals and history
+      responses:
+        "200":
+          description: Donation stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DonationStats"
+    post:
+      operationId: createDonation
+      tags: [donations]
+      summary: Create donation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DonationInput"
+      responses:
+        "201":
+          description: Donation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Donation"
+
+  /donations/{id}/confirm:
+    post:
+      operationId: confirmDonation
+      tags: [donations]
+      summary: Admin confirms donation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Confirmed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Donation"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +277,204 @@ components:
       required:
         - status
 
+    User:
+      type: object
+      required: [id, telegramId, username, gameBalance, investBalance, createdAt]
+      properties:
+        id:
+          type: integer
+        telegramId:
+          type: string
+        username:
+          type: ["string", "null"]
+        firstName:
+          type: ["string", "null"]
+        gameBalance:
+          type: number
+        investBalance:
+          type: number
+        createdAt:
+          type: string
+
+    UserInput:
+      type: object
+      required: [telegramId]
+      properties:
+        telegramId:
+          type: string
+        username:
+          type: ["string", "null"]
+        firstName:
+          type: ["string", "null"]
+
+    Deposit:
+      type: object
+      required: [id, telegramId, amount, balanceType, status, createdAt]
+      properties:
+        id:
+          type: integer
+        telegramId:
+          type: string
+        amount:
+          type: number
+        balanceType:
+          type: string
+          enum: [game, invest]
+        status:
+          type: string
+          enum: [pending, confirmed, rejected]
+        createdAt:
+          type: string
+
+    DepositInput:
+      type: object
+      required: [telegramId, amount, balanceType]
+      properties:
+        telegramId:
+          type: string
+        amount:
+          type: number
+        balanceType:
+          type: string
+          enum: [game, invest]
+
+    DepositConfirm:
+      type: object
+      required: [amount]
+      properties:
+        amount:
+          type: number
+
+    Investment:
+      type: object
+      required: [id, telegramId, amount, durationDays, profitRate, dailyProfit, startedAt, endsAt, status]
+      properties:
+        id:
+          type: integer
+        telegramId:
+          type: string
+        amount:
+          type: number
+        durationDays:
+          type: integer
+        profitRate:
+          type: number
+        dailyProfit:
+          type: number
+        totalEarned:
+          type: number
+        startedAt:
+          type: string
+        endsAt:
+          type: string
+        lastProfitAt:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [active, completed]
+
+    InvestmentInput:
+      type: object
+      required: [telegramId, amount, durationDays]
+      properties:
+        telegramId:
+          type: string
+        amount:
+          type: number
+        durationDays:
+          type: integer
+
+    GamePlayInput:
+      type: object
+      required: [telegramId, gameType, betAmount]
+      properties:
+        telegramId:
+          type: string
+        gameType:
+          type: string
+        betAmount:
+          type: number
+
+    GameResult:
+      type: object
+      required: [won, multiplier, payout, newGameBalance]
+      properties:
+        won:
+          type: boolean
+        multiplier:
+          type: number
+        payout:
+          type: number
+        newGameBalance:
+          type: number
+
+    GameBet:
+      type: object
+      required: [id, telegramId, gameType, betAmount, multiplier, won, payout, createdAt]
+      properties:
+        id:
+          type: integer
+        telegramId:
+          type: string
+        gameType:
+          type: string
+        betAmount:
+          type: number
+        multiplier:
+          type: number
+        won:
+          type: boolean
+        payout:
+          type: number
+        createdAt:
+          type: string
+
+    Donation:
+      type: object
+      required: [id, telegramId, team, amount, source, status, createdAt]
+      properties:
+        id:
+          type: integer
+        telegramId:
+          type: string
+        team:
+          type: string
+          enum: [real_madrid, barcelona]
+        amount:
+          type: number
+        source:
+          type: string
+          enum: [balance, receipt]
+        status:
+          type: string
+          enum: [pending, confirmed]
+        createdAt:
+          type: string
+
+    DonationInput:
+      type: object
+      required: [telegramId, team, amount, source]
+      properties:
+        telegramId:
+          type: string
+        team:
+          type: string
+          enum: [real_madrid, barcelona]
+        amount:
+          type: number
+        source:
+          type: string
+          enum: [balance, receipt]
+
+    DonationStats:
+      type: object
+      required: [realMadridTotal, barcelonaTotal, recent]
+      properties:
+        realMadridTotal:
+          type: number
+        barcelonaTotal:
+          type: number
+        recent:
+          type: array
+          items:
+            $ref: "#/components/schemas/Donation"

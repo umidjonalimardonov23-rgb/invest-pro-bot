@@ -1,16 +1,15 @@
-import app from "./app";
-import { logger } from "./lib/logger";
+import app from "./app.js";
+import { logger } from "./lib/logger.js";
+import { startBot } from "./bot/index.js";
+import { processInvestmentProfits } from "./bot/scheduler.js";
 
 const rawPort = process.env["PORT"];
 
 if (!rawPort) {
-  throw new Error(
-    "PORT environment variable is required but was not provided.",
-  );
+  throw new Error("PORT environment variable is required but was not provided.");
 }
 
 const port = Number(rawPort);
-
 if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
@@ -20,6 +19,26 @@ app.listen(port, (err) => {
     logger.error({ err }, "Error listening on port");
     process.exit(1);
   }
-
   logger.info({ port }, "Server listening");
 });
+
+// Start Telegram bot
+startBot();
+
+// Run profit scheduler every hour
+setInterval(async () => {
+  try {
+    await processInvestmentProfits();
+  } catch (e) {
+    logger.error({ e }, "Profit scheduler error");
+  }
+}, 60 * 60 * 1000);
+
+// Also run on startup after 5 seconds
+setTimeout(async () => {
+  try {
+    await processInvestmentProfits();
+  } catch (e) {
+    logger.error({ e }, "Initial profit check error");
+  }
+}, 5000);
