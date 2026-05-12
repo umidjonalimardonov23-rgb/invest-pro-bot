@@ -3,7 +3,7 @@ import { useApp } from "../context/AppContext";
 import { api } from "../lib/api";
 import { closeMiniApp } from "../lib/telegram";
 
-const MIN_DONATION = 2_000_000;
+const MIN_DONATION = 2_000;
 
 export function DonatePage() {
   const { user, refreshUser } = useApp();
@@ -147,28 +147,28 @@ export function DonatePage() {
 
       {/* Amount */}
       <div>
-        <label className="text-sm font-medium mb-1.5 block">Summa (minimal 2,000,000 so'm)</label>
+        <label className="text-sm font-medium mb-1.5 block">Summa (minimal 2,000 so'm)</label>
         <input
           type="number"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          placeholder="2,000,000"
+          placeholder="2,000"
           className="w-full bg-card border border-border rounded-xl px-4 py-3 text-lg font-bold focus:outline-none focus:border-primary"
         />
         {amount && !isValid && (
-          <div className="text-destructive text-xs mt-1">Minimal danat 2,000,000 so'm</div>
+          <div className="text-destructive text-xs mt-1">Minimal danat 2,000 so'm</div>
         )}
       </div>
 
       {/* Quick amounts */}
-      <div className="grid grid-cols-3 gap-2">
-        {[2000000, 5000000, 10000000].map((q) => (
+      <div className="grid grid-cols-4 gap-2">
+        {[2000, 5000, 10000, 50000].map((q) => (
           <button
             key={q}
             onClick={() => setAmount(String(q))}
             className="bg-secondary rounded-lg py-2 text-xs font-medium hover:bg-muted"
           >
-            {q >= 1000000 ? `${q / 1000000}M` : `${q / 1000}K`}
+            {q >= 1000 ? `${q / 1000}K` : q}
           </button>
         ))}
       </div>
