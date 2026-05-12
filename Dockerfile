@@ -13,4 +13,4 @@ EXPOSE 8080
 
 ENV PYTHONUNBUFFERED=1
 
-CMD gunicorn web.app:app --bind 0.0.0.0:$PORT --workers 1 & python -m bot.main & wait
+CMD ["/bin/bash", "-c", "gunicorn web.app:app --bind 0.0.0.0:$PORT --workers 1 & python -m bot.main & wait"]
