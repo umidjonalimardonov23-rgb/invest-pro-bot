@@ -3,8 +3,8 @@ import os
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8673048636:AAGt98mEwI85lWnKqLwlH3yqbLbumuuYWqI")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "7575930751"))
 PAYMENT_CARD = os.getenv("PAYMENT_CARD", "9860606760806673")
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///database.db")
-PORT = int(os.getenv("PORT", 8080))
+DATABASE_URL = os.getenv("DATABASE_URL") or "sqlite:///database.db"
+PORT = int(os.getenv("PORT") or 8080)
 MINI_APP_URL = os.getenv("MINI_APP_URL", "https://invest-pro-mini.up.railway.app")
 
 MIN_DEPOSIT = 2000
