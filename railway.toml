@@ -1,7 +1,7 @@
 [build]
-builder = "NIXPACKS"
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "gunicorn web.app:app --bind 0.0.0.0:$PORT --workers 1 & python -m bot.main & wait"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
