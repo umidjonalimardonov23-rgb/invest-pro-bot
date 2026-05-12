@@ -1,21 +1,16 @@
-FROM node:20-alpine
+FROM python:3.11-slim
 
 WORKDIR /app
 
-RUN npm install -g pnpm@10.26.1
+RUN apt-get update && apt-get install -y libpq-dev gcc && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN pnpm install --no-frozen-lockfile
-
-RUN pnpm --filter @workspace/api-spec run codegen
-
-RUN pnpm --filter @workspace/api-server run build
-
-RUN BASE_PATH=/ pnpm --filter @workspace/miniapp run build
-
 EXPOSE 8080
 
-ENV NODE_ENV=production
+ENV PYTHONUNBUFFERED=1
 
-CMD ["node", "--enable-source-maps", "artifacts/api-server/dist/index.mjs"]
+CMD gunicorn web.app:app --bind 0.0.0.0:$PORT --workers 1 & python -m bot.main & wait
