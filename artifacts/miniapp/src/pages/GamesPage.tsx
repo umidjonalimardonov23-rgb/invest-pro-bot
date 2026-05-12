@@ -250,8 +250,6 @@ export function GamesPage() {
         )}
 
         <div className="bg-card border border-border rounded-xl p-3 text-xs text-muted-foreground space-y-1">
-          <div>• Yutish ehtimoli: <span className="text-foreground">25%</span></div>
-          <div>• Katta stavka = past yutish ehtimoli</div>
           <div>• Minimal stavka: <span className="text-foreground">2,000 so'm</span></div>
         </div>
       </div>
@@ -266,7 +264,7 @@ export function GamesPage() {
       </div>
 
       <div className="text-xs text-muted-foreground bg-card border border-border rounded-xl px-3 py-2">
-        ⚠️ Minimal stavka 2,000 so'm • Yutish: 25% • Katta stavka = kamroq yutish ehtimoli
+        ⚠️ Minimal stavka 2,000 so'm
       </div>
 
       <div className="grid grid-cols-2 gap-3">
