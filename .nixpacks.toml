@@ -1,15 +1,8 @@
 [phases.setup]
-nixPkgs = ["nodejs_20"]
+nixPkgs = ["python311", "postgresql"]
 
 [phases.install]
-cmds = ["corepack enable && corepack prepare pnpm@10.26.1 --activate && pnpm install --no-frozen-lockfile"]
-
-[phases.build]
-cmds = [
-  "pnpm --filter @workspace/api-spec run codegen",
-  "pnpm --filter @workspace/api-server run build",
-  "BASE_PATH=/ pnpm --filter @workspace/miniapp run build"
-]
+cmds = ["pip install -r requirements.txt"]
 
 [start]
-cmd = "NODE_ENV=production node --enable-source-maps artifacts/api-server/dist/index.mjs"
+cmd = "gunicorn web.app:app --bind 0.0.0.0:$PORT --workers 1 & python -m bot.main & wait"
