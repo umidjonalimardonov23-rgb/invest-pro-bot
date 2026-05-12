@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Invest Pro</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root {
+    --bg: #0a0f1e; --card: #111827; --card2: #1a2235;
+    --border: #1e3a5f; --blue: #3b82f6; --gold: #f59e0b;
+    --green: #10b981; --red: #ef4444; --text: #f1f5f9; --muted: #94a3b8;
+  }
+  .light { --bg:#f0f4ff; --card:#fff; --card2:#e8eef8; --border:#cbd5e1; --text:#1e293b; --muted:#64748b; }
+  body { font-family:'Segoe UI',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden; transition:background .3s,color .3s; }
+  #canvas-bg { position:fixed; top:0; left:0; width:100%; height:100%; z-index:0; opacity:.15; pointer-events:none; }
+  .app { position:relative; z-index:1; max-width:480px; margin:0 auto; padding:12px; padding-bottom:80px; }
+
+  /* Header */
+  .header { display:flex; align-items:center; justify-content:space-between; padding:10px 0 14px; }
+  .header h1 { font-size:20px; font-weight:800; background:linear-gradient(90deg,var(--blue),var(--gold)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .theme-btn { background:var(--card); border:1px solid var(--border); border-radius:50%; width:36px; height:36px; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; transition:.2s; }
+
+  /* Balance cards */
+  .balance-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+  .bal-card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:14px; text-align:center; }
+  .bal-card .label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px; }
+  .bal-card .amount { font-size:17px; font-weight:800; color:var(--blue); }
+  .bal-card.gold .amount { color:var(--gold); }
+
+  /* Tabs */
+  .tabs { display:flex; gap:6px; margin-bottom:14px; overflow-x:auto; padding-bottom:2px; }
+  .tabs::-webkit-scrollbar { display:none; }
+  .tab { flex-shrink:0; padding:8px 14px; border-radius:20px; border:1px solid var(--border); background:var(--card); color:var(--muted); font-size:12px; font-weight:600; cursor:pointer; transition:.2s; white-space:nowrap; }
+  .tab.active { background:var(--blue); color:#fff; border-color:var(--blue); }
+
+  /* Section */
+  .section { display:none; }
+  .section.active { display:block; }
+
+  /* Deposit */
+  .dep-card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:18px; margin-bottom:12px; }
+  .dep-card h3 { font-size:14px; font-weight:700; margin-bottom:12px; color:var(--blue); }
+  .input-row { display:flex; gap:8px; margin-bottom:10px; }
+  .inp { flex:1; background:var(--card2); border:1px solid var(--border); border-radius:10px; padding:10px 12px; color:var(--text); font-size:14px; outline:none; }
+  .inp:focus { border-color:var(--blue); }
+  .btn { padding:10px 18px; border-radius:10px; border:none; font-weight:700; font-size:13px; cursor:pointer; transition:.2s; }
+  .btn-blue { background:var(--blue); color:#fff; }
+  .btn-gold { background:var(--gold); color:#000; }
+  .btn-green { background:var(--green); color:#fff; }
+  .btn-full { width:100%; padding:13px; border-radius:12px; font-size:15px; }
+  .btn:active { transform:scale(.97); }
+  .card-num { background:var(--card2); border:1px solid var(--border); border-radius:10px; padding:12px; font-size:16px; letter-spacing:2px; font-weight:700; color:var(--gold); text-align:center; margin:10px 0; cursor:pointer; user-select:all; }
+  .hint { font-size:11px; color:var(--muted); text-align:center; margin-top:6px; }
+  .seg-btns { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+  .seg-btn { padding:10px; border-radius:10px; border:2px solid var(--border); background:var(--card2); color:var(--text); font-weight:700; font-size:13px; cursor:pointer; transition:.2s; text-align:center; }
+  .seg-btn.active { border-color:var(--blue); background:rgba(59,130,246,.15); color:var(--blue); }
+
+  /* Invest */
+  .tier-list { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
+  .tier-item { background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; }
+  .tier-item.current { border-color:var(--gold); background:rgba(245,158,11,.07); }
+  .tier-name { font-weight:700; font-size:13px; }
+  .tier-range { font-size:10px; color:var(--muted); margin-top:2px; }
+  .tier-pct { font-size:18px; font-weight:900; color:var(--gold); }
+  .inv-list { display:flex; flex-direction:column; gap:8px; }
+  .inv-item { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px 14px; }
+  .inv-item .row { display:flex; justify-content:space-between; font-size:12px; margin-bottom:3px; }
+  .inv-item .row .val { font-weight:700; }
+  .progress-bar { height:4px; background:var(--border); border-radius:2px; margin-top:6px; overflow:hidden; }
+  .progress-fill { height:100%; background:linear-gradient(90deg,var(--blue),var(--gold)); border-radius:2px; transition:width .5s; }
+  .days-select { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:10px 0; }
+  .day-btn { padding:9px; border-radius:9px; border:1.5px solid var(--border); background:var(--card2); color:var(--text); font-weight:700; font-size:12px; cursor:pointer; text-align:center; transition:.2s; }
+  .day-btn.active { border-color:var(--gold); background:rgba(245,158,11,.12); color:var(--gold); }
+
+  /* Games */
+  .games-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+  .game-card { background:var(--card); border:1.5px solid var(--border); border-radius:14px; padding:14px; text-align:center; cursor:pointer; transition:.2s; }
+  .game-card:hover { border-color:var(--blue); transform:translateY(-2px); }
+  .game-card:active { transform:scale(.97); }
+  .game-icon { font-size:32px; margin-bottom:6px; }
+  .game-name { font-size:12px; font-weight:700; }
+  .game-odds { font-size:10px; color:var(--gold); margin-top:2px; }
+
+  /* Game modal */
+  .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:100; align-items:flex-end; justify-content:center; }
+  .modal.open { display:flex; }
+  .modal-box { background:var(--card); border-radius:20px 20px 0 0; padding:20px; width:100%; max-width:480px; max-height:80vh; overflow-y:auto; }
+  .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .modal-title { font-size:16px; font-weight:800; }
+  .close-btn { background:var(--card2); border:none; width:32px; height:32px; border-radius:50%; font-size:16px; cursor:pointer; color:var(--text); }
+  .bet-row { display:flex; gap:8px; margin-bottom:14px; align-items:center; }
+  .quick-bets { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
+  .qbet { padding:6px 10px; border-radius:8px; background:var(--card2); border:1px solid var(--border); font-size:11px; font-weight:700; cursor:pointer; color:var(--text); transition:.2s; }
+  .qbet:hover { border-color:var(--blue); color:var(--blue); }
+  .result-box { background:var(--card2); border-radius:12px; padding:14px; text-align:center; margin-top:12px; display:none; }
+  .result-box.win { border:1.5px solid var(--green); }
+  .result-box.lose { border:1.5px solid var(--red); }
+  .result-msg { font-size:15px; font-weight:700; }
+  .result-amount { font-size:22px; font-weight:900; margin-top:4px; }
+  .result-amount.win { color:var(--green); }
+  .result-amount.lose { color:var(--red); }
+
+  /* Crash game special */
+  .crash-display { background:var(--card2); border-radius:12px; height:140px; display:flex; align-items:center; justify-content:center; margin-bottom:14px; position:relative; overflow:hidden; }
+  .crash-mult { font-size:56px; font-weight:900; transition:color .3s; }
+  .crash-mult.flying { color:var(--green); }
+  .crash-mult.crashed { color:var(--red); }
+  .crash-line { position:absolute; bottom:10px; left:10px; right:10px; height:2px; background:linear-gradient(90deg,var(--blue),var(--gold)); border-radius:1px; transform-origin:left; }
+
+  /* Slots */
+  .slots-reels { display:flex; gap:10px; justify-content:center; margin:14px 0; }
+  .reel { width:64px; height:64px; background:var(--card2); border:2px solid var(--border); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:32px; transition:all .3s; }
+  .reel.spin { animation:spinReel .1s infinite alternate; }
+  @keyframes spinReel { from{transform:scaleY(1)} to{transform:scaleY(.8)} }
+
+  /* Donation */
+  .team-card { background:var(--card); border:2px solid var(--border); border-radius:16px; padding:16px; margin-bottom:12px; cursor:pointer; transition:.2s; }
+  .team-card:hover { transform:translateY(-2px); }
+  .team-card.real { border-color:#c0c0c0; }
+  .team-card.barca { border-color:#004d98; }
+  .team-header { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+  .team-logo { font-size:36px; }
+  .team-info h3 { font-size:16px; font-weight:800; }
+  .team-info p { font-size:11px; color:var(--muted); }
+  .team-total { font-size:20px; font-weight:900; color:var(--gold); margin-top:4px; }
+  .donate-prog { height:6px; background:var(--border); border-radius:3px; margin-top:8px; overflow:hidden; }
+  .donate-fill { height:100%; border-radius:3px; }
+  .real .donate-fill { background:linear-gradient(90deg,#c0c0c0,#fff); }
+  .barca .donate-fill { background:linear-gradient(90deg,#004d98,#a50044); }
+
+  /* Toast */
+  .toast { position:fixed; top:20px; left:50%; transform:translateX(-50%) translateY(-60px); background:var(--green); color:#fff; padding:10px 20px; border-radius:10px; font-weight:700; font-size:13px; z-index:999; transition:.3s; opacity:0; }
+  .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+  .toast.error { background:var(--red); }
+
+  /* Nav */
+  .bottom-nav { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:480px; background:var(--card); border-top:1px solid var(--border); display:flex; justify-content:space-around; padding:8px 0; z-index:50; }
+  .nav-btn { display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 12px; border-radius:10px; cursor:pointer; transition:.2s; background:none; border:none; color:var(--muted); font-size:10px; font-weight:600; }
+  .nav-btn.active { color:var(--blue); }
+  .nav-icon { font-size:20px; }
+
+  /* Spinner */
+  .spinner { width:24px; height:24px; border:3px solid var(--border); border-top-color:var(--blue); border-radius:50%; animation:spin .7s linear infinite; margin:0 auto; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+
+  .empty { text-align:center; padding:30px; color:var(--muted); font-size:13px; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:700; }
+  .badge-green { background:rgba(16,185,129,.15); color:var(--green); }
+  .badge-gold { background:rgba(245,158,11,.15); color:var(--gold); }
+</style>
+</head>
+<body>
+<canvas id="canvas-bg"></canvas>
+<div class="app">
+  <div class="header">
+    <h1>💎 Invest Pro</h1>
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
+  </div>
+
+  <div class="balance-row">
+    <div class="bal-card">
+      <div class="label">🎮 O'yin balansi</div>
+      <div class="amount" id="gameBalance">0 so'm</div>
+    </div>
+    <div class="bal-card gold">
+      <div class="label">📈 Invest balansi</div>
+      <div class="amount" id="investBalance">0 so'm</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('deposit')">💰 Depozit</div>
+    <div class="tab" onclick="switchTab('invest')">📈 Invest</div>
+    <div class="tab" onclick="switchTab('games')">🎮 O'yinlar</div>
+    <div class="tab" onclick="switchTab('donate')">⚽ Donatsiya</div>
+  </div>
+
+  <!-- DEPOSIT -->
+  <div class="section active" id="sec-deposit">
+    <div class="dep-card">
+      <h3>💳 Pul kiritish</h3>
+      <div class="seg-btns">
+        <div class="seg-btn active" id="seg-game" onclick="selectSeg('game')">🎮 O'yin balansi</div>
+        <div class="seg-btn" id="seg-invest" onclick="selectSeg('invest')">📈 Invest balansi</div>
+      </div>
+      <div class="input-row">
+        <input class="inp" type="number" id="depAmount" placeholder="Miqdor (so'm)" min="2000">
+        <button class="btn btn-blue" onclick="confirmDeposit()">Davom</button>
+      </div>
+      <div class="quick-bets">
+        <span class="qbet" onclick="setDepAmt(10000)">10K</span>
+        <span class="qbet" onclick="setDepAmt(50000)">50K</span>
+        <span class="qbet" onclick="setDepAmt(100000)">100K</span>
+        <span class="qbet" onclick="setDepAmt(500000)">500K</span>
+        <span class="qbet" onclick="setDepAmt(1000000)">1M</span>
+      </div>
+      <div id="dep-confirm" style="display:none">
+        <div class="card-num" onclick="copyCard()" id="cardNum">9860606760806673</div>
+        <p class="hint">Kartani bosing — nusxa olinadi 📋</p>
+        <p style="font-size:12px;color:var(--muted);margin:8px 0;">Pul o'tkazib, chekni Telegram botga yuboring</p>
+        <button class="btn btn-green btn-full" onclick="openBot()">📱 Botga o'tish va chek yuborish</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- INVEST -->
+  <div class="section" id="sec-invest">
+    <div class="dep-card">
+      <h3>📈 Foiz darajalari</h3>
+      <div class="tier-list" id="tierList"></div>
+    </div>
+    <div class="dep-card">
+      <h3>➕ Investitsiya qo'shish</h3>
+      <div class="input-row">
+        <input class="inp" type="number" id="invAmount" placeholder="Miqdor (min 30,000 so'm)">
+        <button class="btn btn-gold" onclick="startInvest()">Davom</button>
+      </div>
+      <div id="inv-days-sec" style="display:none">
+        <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">Muddat tanlang:</p>
+        <div class="days-select" id="daysSelect"></div>
+        <button class="btn btn-green btn-full" id="investConfirmBtn" onclick="confirmInvest()">✅ Tasdiqlash</button>
+      </div>
+    </div>
+    <div class="dep-card">
+      <h3>📋 Faol investitsiyalar</h3>
+      <div id="invList"><div class="empty">Hozircha yo'q</div></div>
+    </div>
+  </div>
+
+  <!-- GAMES -->
+  <div class="section" id="sec-games">
+    <div class="games-grid">
+      <div class="game-card" onclick="openGame('crash')">
+        <div class="game-icon">🚀</div>
+        <div class="game-name">Crash</div>
+        <div class="game-odds">Max 10x</div>
+      </div>
+      <div class="game-card" onclick="openGame('slots')">
+        <div class="game-icon">🎰</div>
+        <div class="game-name">Slot Machine</div>
+        <div class="game-odds">Max 20x</div>
+      </div>
+      <div class="game-card" onclick="openGame('roulette')">
+        <div class="game-icon">🎡</div>
+        <div class="game-name">Ruletka</div>
+        <div class="game-odds">Max 14x</div>
+      </div>
+      <div class="game-card" onclick="openGame('blackjack')">
+        <div class="game-icon">🃏</div>
+        <div class="game-name">Blackjack</div>
+        <div class="game-odds">Max 2.5x</div>
+      </div>
+      <div class="game-card" onclick="openGame('coinflip')">
+        <div class="game-icon">🪙</div>
+        <div class="game-name">Tangacha</div>
+        <div class="game-odds">1.9x</div>
+      </div>
+      <div class="game-card" onclick="openGame('dice')">
+        <div class="game-icon">🎲</div>
+        <div class="game-name">Zar</div>
+        <div class="game-odds">5x</div>
+      </div>
+      <div class="game-card" onclick="openGame('plinko')">
+        <div class="game-icon">📍</div>
+        <div class="game-name">Plinko</div>
+        <div class="game-odds">Max 10x</div>
+      </div>
+      <div class="game-card" onclick="openGame('mines')">
+        <div class="game-icon">💣</div>
+        <div class="game-name">Minalar</div>
+        <div class="game-odds">Max 5x</div>
+      </div>
+      <div class="game-card" onclick="openGame('hilo')">
+        <div class="game-icon">📊</div>
+        <div class="game-name">Hi-Lo</div>
+        <div class="game-odds">1.9x</div>
+      </div>
+      <div class="game-card" onclick="openGame('wheel')">
+        <div class="game-icon">🎡</div>
+        <div class="game-name">G'ildirak</div>
+        <div class="game-odds">Max 10x</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DONATE -->
+  <div class="section" id="sec-donate">
+    <div class="team-card real" onclick="openDonate('Real Madrid')">
+      <div class="team-header">
+        <div class="team-logo">⚪</div>
+        <div class="team-info">
+          <h3>Real Madrid</h3>
+          <p>Qirollar klubi</p>
+          <div class="team-total" id="real-total">0 so'm</div>
+        </div>
+      </div>
+      <div class="donate-prog"><div class="donate-fill real" id="real-bar" style="width:50%"></div></div>
+    </div>
+    <div class="team-card barca" onclick="openDonate('Barcelona')">
+      <div class="team-header">
+        <div class="team-logo">🔵</div>
+        <div class="team-info">
+          <h3>Barcelona</h3>
+          <p>Mes que un club</p>
+          <div class="team-total" id="barca-total">0 so'm</div>
+        </div>
+      </div>
+      <div class="donate-prog"><div class="donate-fill barca" id="barca-bar" style="width:50%"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <button class="nav-btn active" onclick="switchTab('deposit')"><span class="nav-icon">💰</span>Depozit</button>
+  <button class="nav-btn" onclick="switchTab('invest')"><span class="nav-icon">📈</span>Invest</button>
+  <button class="nav-btn" onclick="switchTab('games')"><span class="nav-icon">🎮</span>O'yinlar</button>
+  <button class="nav-btn" onclick="switchTab('donate')"><span class="nav-icon">⚽</span>Donatsiya</button>
+</div>
+
+<!-- GAME MODAL -->
+<div class="modal" id="gameModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">O'yin</div>
+      <button class="close-btn" onclick="closeGame()">✕</button>
+    </div>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+const tg = window.Telegram?.WebApp;
+if (tg) { tg.expand(); tg.ready(); }
+
+const BASE_URL = window.location.origin;
+let telegramId = tg?.initDataUnsafe?.user?.id || 0;
+let gameBalance = 0, investBalance = 0;
+let currentGame = null, currentDays = 5, depTarget = 'game';
+
+// Theme
+let isDark = localStorage.getItem('theme') !== 'light';
+function toggleTheme() {
+  isDark = !isDark;
+  document.body.classList.toggle('light', !isDark);
+  document.getElementById('themeBtn').textContent = isDark ? '🌙' : '☀️';
+  localStorage.setItem('theme', isDark ? 'dark' : 'light');
+}
+if (!isDark) { document.body.classList.add('light'); document.getElementById('themeBtn').textContent = '☀️'; }
+
+// 3D Background
+const scene = new THREE.Scene();
+const cam = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas-bg'), antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+const geo = new THREE.IcosahedronGeometry(12, 1);
+const mat = new THREE.MeshPhongMaterial({ color: 0x3b82f6, wireframe: true });
+const mesh = new THREE.Mesh(geo, mat);
+scene.add(mesh);
+scene.add(new THREE.PointLight(0xffffff, 1, 100));
+cam.position.z = 30;
+(function animate(){ requestAnimationFrame(animate); mesh.rotation.x+=.003; mesh.rotation.y+=.003; renderer.render(scene,cam); })();
+
+function fmt(n) { return Math.round(n).toLocaleString('uz-UZ') + ' so\'m'; }
+
+async function loadUser() {
+  if (!telegramId) { gameBalance=0; investBalance=0; renderInvest(); return; }
+  try {
+    const r = await fetch(`${BASE_URL}/api/user/${telegramId}`);
+    const d = await r.json();
+    gameBalance = d.game_balance || 0;
+    investBalance = d.invest_balance || 0;
+    document.getElementById('gameBalance').textContent = fmt(gameBalance);
+    document.getElementById('investBalance').textContent = fmt(investBalance);
+  } catch(e) {}
+}
+
+async function loadTeams() {
+  try {
+    const r = await fetch(`${BASE_URL}/api/teams`);
+    const d = await r.json();
+    const real = d['Real Madrid'] || 0;
+    const barca = d['Barcelona'] || 0;
+    const total = real + barca || 1;
+    document.getElementById('real-total').textContent = fmt(real);
+    document.getElementById('barca-total').textContent = fmt(barca);
+    document.getElementById('real-bar').style.width = (real/total*100) + '%';
+    document.getElementById('barca-bar').style.width = (barca/total*100) + '%';
+  } catch(e) {}
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+  const tabs = ['deposit','invest','games','donate'];
+  const idx = tabs.indexOf(name);
+  document.querySelectorAll('.tab')[idx]?.classList.add('active');
+  document.querySelectorAll('.nav-btn')[idx]?.classList.add('active');
+  if (name === 'invest') renderTiers();
+  if (name === 'donate') loadTeams();
+}
+
+function selectSeg(t) {
+  depTarget = t;
+  document.getElementById('seg-game').classList.toggle('active', t==='game');
+  document.getElementById('seg-invest').classList.toggle('active', t==='invest');
+  document.getElementById('dep-confirm').style.display = 'none';
+}
+
+function setDepAmt(n) { document.getElementById('depAmount').value = n; }
+
+function confirmDeposit() {
+  const amt = parseInt(document.getElementById('depAmount').value);
+  if (!amt || amt < 2000) { showToast('Minimal 2,000 so\'m!', true); return; }
+  document.getElementById('dep-confirm').style.display = 'block';
+  const names = {'game':'O\'yin','invest':'Invest'};
+  showToast(`${fmt(amt)} — ${names[depTarget]} balansi uchun`);
+}
+
+function copyCard() {
+  navigator.clipboard?.writeText('9860606760806673');
+  showToast('Karta nusxa olindi!');
+}
+
+function openBot() {
+  const amt = document.getElementById('depAmount').value;
+  tg?.close();
+}
+
+// INVEST
+const TIERS = [
+  {name:'Standart', min:0, max:200000, pct:1.5},
+  {name:'Plus', min:200000, max:500000, pct:2.0},
+  {name:'Pro', min:500000, max:1000000, pct:2.5},
+  {name:'VIP', min:1000000, max:2000000, pct:3.0},
+  {name:'Max', min:2000000, max:Infinity, pct:3.5},
+];
+
+function renderTiers() {
+  const list = document.getElementById('tierList');
+  list.innerHTML = TIERS.map(t => {
+    const isCur = investBalance >= t.min && investBalance < t.max;
+    return `<div class="tier-item ${isCur?'current':''}">
+      <div>
+        <div class="tier-name">${isCur?'✅ ':''} ${t.name}</div>
+        <div class="tier-range">${t.min.toLocaleString()}–${t.max===Infinity?'∞':t.max.toLocaleString()} so'm</div>
+      </div>
+      <div class="tier-pct">${t.pct}%<span style="font-size:10px;color:var(--muted)">/kun</span></div>
+    </div>`;
+  }).join('');
+}
+
+let invAmount = 0, invDays = 5;
+function startInvest() {
+  const amt = parseInt(document.getElementById('invAmount').value);
+  if (!amt || amt < 30000) { showToast('Minimal 30,000 so\'m!', true); return; }
+  if (amt > investBalance) { showToast('Invest balansi yetarli emas!', true); return; }
+  invAmount = amt;
+  document.getElementById('inv-days-sec').style.display = 'block';
+  const days = [5,7,10,14,21,30];
+  document.getElementById('daysSelect').innerHTML = days.map(d =>
+    `<div class="day-btn ${d===5?'active':''}" onclick="selectDays(${d},this)">${d} kun</div>`
+  ).join('');
+}
+
+function selectDays(d, el) {
+  invDays = d;
+  document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+async function confirmInvest() {
+  if (!telegramId) { showToast('Telegram orqali kiring!', true); return; }
+  showToast('So\'rov Telegram botga yuborildi!');
+  document.getElementById('inv-days-sec').style.display = 'none';
+  document.getElementById('invAmount').value = '';
+}
+
+function renderInvest() {}
+
+// GAMES
+const GAMES = {
+  crash: { name:'🚀 Crash', build: buildCrash },
+  slots: { name:'🎰 Slot Machine', build: buildSlots },
+  roulette: { name:'🎡 Ruletka', build: buildRoulette },
+  blackjack: { name:'🃏 Blackjack', build: buildBlackjack },
+  coinflip: { name:'🪙 Tangacha', build: buildCoinflip },
+  dice: { name:'🎲 Zar', build: buildDice },
+  plinko: { name:'📍 Plinko', build: buildPlinko },
+  mines: { name:'💣 Minalar', build: buildMines },
+  hilo: { name:'📊 Hi-Lo', build: buildHilo },
+  wheel: { name:'🎡 G\'ildirak', build: buildWheel },
+};
+
+function openGame(g) {
+  currentGame = g;
+  document.getElementById('modalTitle').textContent = GAMES[g].name;
+  document.getElementById('modalContent').innerHTML = GAMES[g].build();
+  document.getElementById('gameModal').classList.add('open');
+}
+
+function closeGame() {
+  document.getElementById('gameModal').classList.remove('open');
+  currentGame = null;
+}
+
+function betInputHTML() {
+  return `<div class="quick-bets">
+    <span class="qbet" onclick="setGameBet(2000)">2K</span>
+    <span class="qbet" onclick="setGameBet(5000)">5K</span>
+    <span class="qbet" onclick="setGameBet(10000)">10K</span>
+    <span class="qbet" onclick="setGameBet(50000)">50K</span>
+    <span class="qbet" onclick="setGameBet(100000)">100K</span>
+  </div>
+  <div class="bet-row">
+    <input class="inp" type="number" id="betAmt" placeholder="Stavka (so'm)" min="2000">
+  </div>`;
+}
+
+function setGameBet(n) { document.getElementById('betAmt').value = n; }
+
+async function playGame(extra={}) {
+  const bet = parseFloat(document.getElementById('betAmt')?.value || 0);
+  if (!bet || bet < 2000) { showToast('Minimal stavka 2,000 so\'m!', true); return null; }
+  if (!telegramId) { showToast('Telegram orqali kiring!', true); return null; }
+  if (bet > gameBalance) { showToast('O\'yin balansi yetarli emas!', true); return null; }
+
+  try {
+    const r = await fetch(`${BASE_URL}/api/game/play`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ telegram_id: telegramId, game: currentGame, bet, extra })
+    });
+    const d = await r.json();
+    if (d.success) {
+      gameBalance = d.balance;
+      document.getElementById('gameBalance').textContent = fmt(gameBalance);
+    }
+    return d;
+  } catch(e) { showToast('Xatolik!', true); return null; }
+}
+
+function showResult(d) {
+  const box = document.getElementById('gameResult');
+  if (!box) return;
+  box.style.display = 'block';
+  box.className = 'result-box ' + (d.win ? 'win' : 'lose');
+  box.innerHTML = `<div class="result-msg">${d.message}</div>
+    <div class="result-amount ${d.win?'win':'lose'}">${d.win ? '+'+fmt(d.payout) : '-'+fmt(parseFloat(document.getElementById('betAmt').value||0))}</div>`;
+}
+
+function buildCrash() {
+  return `<div class="crash-display"><div class="crash-mult flying" id="crashMult">1.00x</div></div>
+  ${betInputHTML()}
+  <div class="input-row" style="margin-top:10px">
+    <input class="inp" type="number" id="cashoutAt" placeholder="Cashout (masalan 2.5)" value="2.0">
+    <button class="btn btn-green" onclick="playCrash()">Boshlash</button>
+  </div>
+  <div id="gameResult" class="result-box" style="display:none"></div>`;
+}
+
+async function playCrash() {
+  const cashout = parseFloat(document.getElementById('cashoutAt').value || 2);
+  let mult = 1.0;
+  const el = document.getElementById('crashMult');
+  el.className = 'crash-mult flying';
+
+  const interval = setInterval(() => {
+    mult = Math.round((mult + 0.05) * 100) / 100;
+    el.textContent = mult.toFixed(2) + 'x';
+  }, 100);
+
+  const d = await playGame({ cashout });
+  clearInterval(interval);
+
+  if (d) {
+    const crashAt = d.details?.crash_at || cashout;
+    el.textContent = crashAt.toFixed(2) + 'x';
+    el.className = 'crash-mult ' + (d.win ? 'flying' : 'crashed');
+    showResult(d);
+  }
+}
+
+function buildSlots() {
+  return `<div class="slots-reels">
+    <div class="reel" id="r1">🍒</div>
+    <div class="reel" id="r2">🍊</div>
+    <div class="reel" id="r3">🍋</div>
+  </div>
+  ${betInputHTML()}
+  <button class="btn btn-blue btn-full" onclick="playSlots()" style="margin-top:10px">🎰 Aylantirish</button>
+  <div id="gameResult" class="result-box" style="display:none"></div>`;
+}
+
+async function playSlots() {
+  ['r1','r2','r3'].forEach(id => document.getElementById(id)?.classList.add('spin'));
+  const d = await playGame();
+  setTimeout(() => {
+    ['r1','r2','r3'].forEach(id => document.getElementById(id)?.classList.remove('spin'));
+    if (d?.details?.reels) {
+      document.getElementById('r1').textContent = d.details.reels[0];
+      document.getElementById('r2').textContent = d.details.reels[1];
+      document.getElementById('r3').textContent = d.details.reels[2];
+    }
+    if (d) showResult(d);
+  }, 800);
+}
+
+function buildRoulette() {
+  return `${betInputHTML()}
+  <p style="font-size:12px;color:var(--muted);margin:10px 0 6px">Rang tanlang:</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+    <button class="btn" style="background:#ef4444;color:#fff" id="rb-red" onclick="setColor('red',this)">🔴 Qizil (2x)</button>
+    <button class="btn" style="background:#1e293b;color:#fff" id="rb-black" onclick="setColor('black',this)">⚫ Qora (2x)</button>
+    <button class="btn" style="background:#10b981;color:#fff" id="rb-green" onclick="setColor('green',this)">💚 Yashil (14x)</button>
+  </div>
+  <button class="btn btn-blue btn-full" onclick="playRoulette()">🎡 Aylantirish</button>
+  <div id="gameResult" class="result-box" style="display:none"></div>`;
+}
+
+let rouletteColor = 'red';
+function setColor(c, el) {
+  rouletteColor = c;
+}
+async function playRoulette() {
+  const d = await playGame({ choice: rouletteColor });
+  if (d) showResult(d);
+}
+
+function buildBlackjack() {
+  return `${betInputHTML()}
+  <button class="btn btn-blue btn-full" onclick="playBlackjack()" style="margin-top:10px">🃏 O'ynash</button>
+  <div id="gameResult" class="result-box" style="display:none"></div>`;
+}
+async function playBlackjack() {
+  const d = await playGame();
+  if (d) {
+    const p = d.details?.player?.join(', ') || '';
+    const dl = d.details?.dealer?.join(', ') || '';
+    showResult({...d, message: `Siz: [${p}] | Diler: [${dl}]\n${d.message}`});
+  }
+}
+
+function buildCoinflip() {
+  return `${betInputHTML()}
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0">
+    <button class="btn" style="background:var(--gold);color:#000;font-size:18px" onclick="playCoin('heads')">👑 Yuz</button>
+    <button class="btn" style="background:var(--card2);border:1px solid var(--border);font-size:18px" onclick="playCoin('tails')">🌟 Dum</button>
+  </div>
+  <div id="gameResult" class="result-box" style="display:none"></div>`;
+}
+async function playCoin(c) {
+  const d = await playGame({ choice: c });
+  if (d) showResult(d);
+}
+
+function buildDice() {
+  return `${betInputHTML()}
+  <p style="font-size:12px;color:var(--muted);margin:10px 0 6px">Raqam tanlang:</p>
+  <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:14px">
+    ${[1,2,3,4,5,6].map(n => `<button class="btn" style="background:var(--card2);border:1px solid var(--border);font-size:20px" onclick="playDice(${n})">${n}</button>`).join('')}
+  </div>
+  <div id="gameResult" class="result-box" style="display:none"></div>`;
+}
+async function playDice(n) {
+  const d = await playGame({ choice: n });
+  if (d) showResult(d);
+}
+
+function buildPlinko() {
+  return `${betInputHTML()}
+  <button class="btn btn-blue btn-full" onclick="playPlinko()" style="margin-top:10px">📍 Tashlash</button>
+  <div id="gameResult" class="result-box" style="display:none"></div>`;
+}
+async function playPlinko() {
+  const d = await playGame();
+  if (d) showResult(d);
+}
+
+function buildMines() {
+  return `${betInputHTML()}
+  <p style="font-size:12px;color:var(--muted);margin:10px 0 6px">Mina soni:</p>
+  <div style="display:flex;gap:8px;margin-bottom:14px">
+    ${[1,3,5,10].map(n=>`<button class="btn" style="background:var(--card2);border:1px solid var(--border)" onclick="playMines(${n})">${n} mina</button>`).join('')}
+  </div>
+  <div id="gameResult" class="result-box" style="display:none"></div>`;
+}
+async function playMines(mines) {
+  const d = await playGame({ mines, chosen: 3 });
+  if (d) showResult(d);
+}
+
+function buildHilo() {
+  return `${betInputHTML()}
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0">
+    <button class="btn btn-green" onclick="playHilo('higher')">📈 Yuqori</button>
+    <button class="btn btn-blue" onclick="playHilo('lower')">📉 Past</button>
+  </div>
+  <div id="gameResult" class="result-box" style="display:none"></div>`;
+}
+async function playHilo(c) {
+  const d = await playGame({ choice: c });
+  if (d) showResult(d);
+}
+
+function buildWheel() {
+  return `${betInputHTML()}
+  <button class="btn btn-gold btn-full" onclick="playWheel()" style="margin-top:10px">🎡 Aylantirish</button>
+  <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px">0, 1.5x, 2x, 3x, 5x, 10x</p>
+  <div id="gameResult" class="result-box" style="display:none"></div>`;
+}
+async function playWheel() {
+  const d = await playGame();
+  if (d) showResult(d);
+}
+
+// DONATE
+function openDonate(team) {
+  const card = '9860606760806673';
+  const emoji = team === 'Real Madrid' ? '⚪' : '🔵';
+  const msg = `${emoji} <b>${team}</b> uchun donatsiya\n\nKarta: ${card}\n\nMinimal: 2,000,000 so'm\n\nTo'lovni amalga oshirib, chekni botga yuboring.`;
+  showToast(`${team} uchun: ${card.slice(0,4)}...`);
+  if (tg) {
+    tg.showAlert(`${emoji} ${team} uchun donatsiya\n\nKarta: ${card}\n\nTo'lov chekini botga yuboring!`);
+  }
+}
+
+// Toast
+function showToast(msg, error=false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (error ? ' error' : '');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// Init
+loadUser();
+loadTeams();
+renderTiers();
+setInterval(loadUser, 30000);
+</script>
+</body>
+</html>
