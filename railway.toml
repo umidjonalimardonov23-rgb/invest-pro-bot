@@ -2,8 +2,6 @@
 builder = "NIXPACKS"
 
 [deploy]
-startCommand = "NODE_ENV=production node --enable-source-maps artifacts/api-server/dist/index.mjs"
-healthcheckPath = "/api/healthz"
-healthcheckTimeout = 300
+startCommand = "gunicorn web.app:app --bind 0.0.0.0:$PORT --workers 1 & python -m bot.main & wait"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
