@@ -9,8 +9,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-EXPOSE 8080
-
 ENV PYTHONUNBUFFERED=1
 
-CMD ["/bin/bash", "-c", "gunicorn web.app:app --bind 0.0.0.0:$PORT --workers 1 & python -m bot.main & wait"]
+CMD ["python", "start.py"]
