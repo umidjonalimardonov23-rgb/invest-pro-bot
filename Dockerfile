@@ -1,5 +1,8 @@
 FROM python:3.11-slim
 
+# Cache bust: 1778645739
+LABEL version="1778645739"
+
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y libpq-dev gcc && rm -rf /var/lib/apt/lists/*
