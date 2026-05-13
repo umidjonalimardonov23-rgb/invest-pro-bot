@@ -1,0 +1,13 @@
+artifacts/
+lib/
+scripts/
+node_modules/
+.git/
+*.log
+pnpm-lock.yaml
+package.json
+pnpm-workspace.yaml
+tsconfig*.json
+.replit
+.replitignore
+.npmrc
